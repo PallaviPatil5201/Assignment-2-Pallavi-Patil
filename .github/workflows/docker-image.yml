@@ -18,7 +18,7 @@ jobs:
       run: echo "${{ secrets.PASS }}" | docker login -u "${{ secrets.USER }}" --password-stdin
  
     - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag pallavipatil107/task1
+      run: docker build . --file Dockerfile --tag pallavipatil107/Assignment2
  
     - name: Push Docker Image
-      run: docker push pallavipatil107/task1
+      run: docker push pallavipatil107/Assignment2
