@@ -2,23 +2,16 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "pallavipatil5201/flask-webserver"
-        DOCKER_CREDENTIALS = "docker-hub-credentials"
-        DEPLOY_SERVER = "your-server-ip"
-        DEPLOY_USER = "ubuntu"
+        DOCKER_IMAGE = "pallavipatil107/assignment2"
+        DOCKER_CREDENTIALS = "dockerhub-creds"
+        SSH_CREDENTIALS = "ssh-server-creds"
+        SERVER_IP = "your-server-ip"   // Replace with actual server IP
     }
 
     stages {
-        stage('Clone Repository') {
+        stage('Clone Code') {
             steps {
-                git branch: 'main', url: 'https://github.com/PallaviPatil5201/flask-webserver.git'
-            }
-        }
-
-        stage('Build and Test') {
-            steps {
-                sh 'pip install -r requirements.txt'
-                sh 'pytest tests/' // Run tests (optional)
+                git branch: 'main', url: 'https://github.com/PallaviPatil5201/Assignment-2-Pallavi-Patil.git'
             }
         }
 
@@ -28,23 +21,24 @@ pipeline {
             }
         }
 
-        stage('Push Image to Docker Hub') {
+        stage('Push to Docker Hub') {
             steps {
-                withDockerRegistry([credentialsId: DOCKER_CREDENTIALS, url: 'https://index.docker.io/v1/']) {
+                withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
                     sh "docker push $DOCKER_IMAGE"
                 }
             }
         }
 
-        stage('Deploy to Server') {
+        stage('Deploy to Web Server') {
             steps {
-                sshagent(['server-ssh-key']) {
+                sshagent(['ssh-server-creds']) {
                     sh """
-                    ssh -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_SERVER << EOF
+                    ssh -o StrictHostKeyChecking=no ubuntu@$SERVER_IP << EOF
                         docker pull $DOCKER_IMAGE
-                        docker stop flask-app || true
-                        docker rm flask-app || true
-                        docker run -d --name flask-app -p 80:5000 $DOCKER_IMAGE
+                        docker stop my-flask-app || true
+                        docker rm my-flask-app || true
+                        docker run -d -p 80:5000 --name my-flask-app $DOCKER_IMAGE
                     EOF
                     """
                 }
@@ -54,10 +48,10 @@ pipeline {
 
     post {
         success {
-            echo "Deployment Successful! Access the app at http://$DEPLOY_SERVER"
+            echo "Application deployed successfully! Visit http://$SERVER_IP"
         }
         failure {
-            echo "Build or Deployment Failed!"
+            echo "Build or Deployment failed!"
         }
     }
 }
